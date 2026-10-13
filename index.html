@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Afterwork IT Quiz</title>
+<meta name="theme-color" content="#123526">
+<style>
+:root{
+  --bg:#123526; --bg2:#1a4733; --panel:#21563f; --line:rgba(255,255,255,.14);
+  --ink:#ffffff; --ink2:#cfe6da; --mint:#9fdcbf; --mint2:#d6f2e4; --taupe:#b8a99a;
+  --gold:#e9c46a; --silver:#cfd6dc; --bronze:#d08a5a;
+  --a:#d9483b; --b:#2f6fde; --c:#d99a12; --d:#2e8b57;
+  --ok:#3fb27f; --bad:#d9483b;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(1200px 700px at 20% -10%,#22644a 0%,transparent 60%),var(--bg);color:var(--ink);font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;border:0;cursor:pointer;background:none}
+input{font:inherit}
+.hidden{display:none!important}
+.brand{font-weight:700;letter-spacing:.02em}
+.brand small{display:block;font-weight:400;color:var(--mint);letter-spacing:.18em;text-transform:uppercase;font-size:.72em}
+.btn{background:var(--mint);color:#0d2a1e;font-weight:700;padding:14px 26px;border-radius:999px;font-size:18px;box-shadow:0 4px 0 #6fb593;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #6fb593}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink2);box-shadow:none;border:1px solid var(--line)}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:15px;color:var(--ink2)}
+.shape{width:1em;height:1em;display:inline-block;flex:none;background:#fff}
+.s0{clip-path:polygon(50% 6%,96% 92%,4% 92%)}
+.s1{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.s2{border-radius:50%}
+.s3{border-radius:2px;transform:scale(.86)}
+.c0{background:var(--a)}.c1{background:var(--b)}.c2{background:var(--c)}.c3{background:var(--d)}
+
+/* ---------- HOST ---------- */
+#host{min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 32px;border-bottom:1px solid var(--line)}
+.top .brand{font-size:22px}
+.top .right{display:flex;gap:10px;align-items:center}
+.stage{flex:1;display:flex;flex-direction:column;padding:28px 32px 32px;gap:24px;min-height:0}
+.footer{display:flex;justify-content:space-between;align-items:center;gap:16px}
+
+.lobby{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:36px;flex:1;min-height:0}
+.joincard{background:#fff;color:#0d2a1e;border-radius:22px;padding:26px;display:flex;flex-direction:column;align-items:center;gap:14px;align-self:start}
+.joincard h2{font-size:20px;color:#1a4733}
+#qr{width:100%;aspect-ratio:1;display:grid;place-items:center}
+#qr svg,#qr img{width:100%;height:100%}
+.pinlabel{font-size:14px;color:#5a6b62;text-transform:uppercase;letter-spacing:.14em}
+.pin{font-size:56px;font-weight:700;letter-spacing:.12em;line-height:1}
+.url{font-size:13px;color:#5a6b62;word-break:break-all;text-align:center}
+.urlfix{width:100%;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#7a4b00;background:#fff5e0;border-radius:10px;padding:10px}
+.urlfix input{width:100%;padding:8px 10px;border:1px solid #d9c9a5;border-radius:8px}
+.players{display:flex;flex-direction:column;gap:16px;min-height:0}
+.players h1{font-size:46px;line-height:1.05}
+.players h1 span{color:var(--mint)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;overflow:auto}
+.chip{background:var(--panel);border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:20px;font-weight:700;animation:pop .35s ease-out}
+.chip:hover{background:var(--bad);text-decoration:line-through}
+.chip.off{opacity:.45}
+.empty{color:var(--ink2);font-size:20px;padding:30px 0}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{padding:8px 14px;color:var(--ink2)}
+.seg button.on{background:var(--mint);color:#0d2a1e;font-weight:700}
+.status{font-size:14px;color:var(--ink2)}
+.status.err{color:#ffb4a8}
+
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.qtext{font-size:clamp(28px,3.4vw,52px);font-weight:700;line-height:1.15;text-align:center;background:#fff;color:#0d2a1e;border-radius:18px;padding:28px 34px;box-shadow:0 8px 0 rgba(0,0,0,.18)}
+.mid{flex:1;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:120px}
+.timer{width:140px;height:140px;position:relative;flex:none}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer .num{position:absolute;inset:0;display:grid;place-items:center;font-size:52px;font-weight:700}
+.count{text-align:center;flex:none;width:140px}
+.count b{display:block;font-size:56px;line-height:1}
+.count span{color:var(--ink2)}
+.dist{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:22px;height:180px}
+.dist .col{width:90px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:100%}
+.dist .bar{width:100%;border-radius:8px 8px 0 0;min-height:8px;transition:height .7s cubic-bezier(.2,.8,.2,1)}
+.dist .n{font-size:26px;font-weight:700;display:flex;align-items:center;gap:6px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.opt{display:flex;align-items:center;gap:18px;padding:22px 26px;border-radius:var(--r);font-size:clamp(20px,2.1vw,32px);font-weight:700;min-height:96px;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:opacity .3s,transform .3s}
+.opt .shape{width:38px;height:38px}
+.opt.dim{opacity:.28}
+.opt.win{transform:scale(1.02);outline:5px solid #fff}
+.opt .tick{margin-left:auto;font-size:38px}
+
+.board{flex:1;display:flex;flex-direction:column;align-items:center;gap:18px}
+.board h1{font-size:44px}
+.rows{position:relative;width:min(900px,100%)}
+.row{position:absolute;left:0;right:0;height:74px;display:flex;align-items:center;gap:18px;padding:0 24px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:28px;font-weight:700;transition:transform .8s cubic-bezier(.2,.8,.2,1),opacity .5s}
+.row .rk{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:rgba(255,255,255,.12);flex:none}
+.row.r1 .rk{background:var(--gold);color:#3b2c00}.row.r2 .rk{background:var(--silver);color:#22292e}.row.r3 .rk{background:var(--bronze);color:#3a1c06}
+.row.r1{background:#2a6a4d}
+.row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .delta{font-size:18px;color:var(--mint)}
+.row .mv{font-size:16px;width:46px;text-align:right}
+.mv.up{color:var(--mint)}.mv.down{color:#ffb4a8}
+.row .sc{min-width:110px;text-align:right}
+
+.podium{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:10px;position:relative}
+.podium h1{font-size:48px;position:absolute;top:0}
+.steps{display:flex;align-items:flex-end;gap:18px;height:66vh;width:min(960px,100%)}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;opacity:0;transform:translateY(40px);transition:all .9s cubic-bezier(.2,.8,.2,1)}
+.step.show{opacity:1;transform:none}
+.step .who{font-size:clamp(22px,2.6vw,38px);font-weight:700;text-align:center;margin-bottom:6px;word-break:break-word}
+.step .pts{color:var(--ink2);font-size:20px;margin-bottom:12px}
+.step .blk{width:100%;border-radius:14px 14px 0 0;display:flex;justify-content:center;padding-top:18px;font-size:72px;font-weight:700;color:rgba(0,0,0,.5)}
+.step.p1 .blk{height:55%;background:var(--gold)}
+.step.p2 .blk{height:40%;background:var(--silver)}
+.step.p3 .blk{height:28%;background:var(--bronze)}
+.rest{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:1000px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
+
+/* ---------- PLAYER ---------- */
+#player{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.pbar{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--ink2);gap:10px}
+.pbar b{color:var(--ink)}
+.pmain{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:12px 0}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.big{font-size:34px;font-weight:700;line-height:1.1}
+.sub{color:var(--ink2);font-size:17px;line-height:1.4}
+.field{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.field input{width:100%;padding:16px;border-radius:12px;border:0;font-size:22px;text-align:center;font-weight:700;color:#0d2a1e}
+.field .btn{width:100%}
+.pq{font-size:19px;font-weight:700;line-height:1.3;background:#fff;color:#0d2a1e;border-radius:12px;padding:14px 16px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;max-height:62vh}
+.pbtn{border-radius:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px;text-align:left;font-size:17px;font-weight:700;line-height:1.2;box-shadow:0 5px 0 rgba(0,0,0,.25);min-height:110px}
+.pbtn .shape{width:28px;height:28px}
+.pbtn:active{transform:translateY(3px)}
+.ptimer{height:6px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden}
+.ptimer i{display:block;height:100%;background:var(--mint);transform-origin:left}
+.flash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.flash.ok{background:var(--ok)}.flash.bad{background:var(--bad)}.flash.none{background:#4c5a54}
+.flash .mark{font-size:84px;line-height:1}
+.flash .pts{font-size:26px;font-weight:700;background:rgba(0,0,0,.2);padding:8px 18px;border-radius:999px}
+.medal{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font-size:56px;font-weight:700;color:rgba(0,0,0,.55)}
+.spinner{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:var(--mint);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.home{max-width:520px;margin:auto;padding:40px 20px;display:flex;flex-direction:column;gap:22px;text-align:center}
+.home h1{font-size:42px}
+
+@media (max-width:900px){
+  .lobby{grid-template-columns:1fr}
+  .opts{grid-template-columns:1fr}
+  .top,.stage{padding-left:16px;padding-right:16px}
+  .dist{gap:10px}.dist .col{width:60px}
+}
+</style>
+</head>
+<body>
+
+<div id="home" class="home hidden">
+  <div class="brand" style="font-size:20px">Dely IT<small>Afterwork</small></div>
+  <h1>Afterwork IT Quiz</h1>
+  <p class="sub">Vis quizen på storskjerm som vert, eller bli med som deltaker fra mobilen.</p>
+  <button class="btn" id="goHost">Start som vert</button>
+  <div class="field" style="margin:0 auto">
+    <input id="homePin" inputmode="numeric" maxlength="6" placeholder="PIN">
+    <button class="btn ghost" id="goJoin">Bli med som deltaker</button>
+  </div>
+</div>
+
+<div id="host" class="hidden">
+  <div class="top">
+    <div class="brand">Afterwork IT Quiz<small>Dely IT</small></div>
+    <div class="right">
+      <span class="pill" id="netPill">Kobler til …</span>
+      <button class="btn ghost" id="fsBtn" title="Fullskjerm">⛶</button>
+    </div>
+  </div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<div id="player" class="hidden">
+  <div class="pbar"><span id="pName"></span><span id="pScore"></span></div>
+  <div class="pmain" id="pmain"></div>
+</div>
+
+<canvas id="confetti" class="hidden"></canvas>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+"use strict";
+/* ================= QUESTIONS (fra Quiz - Afterwork IT.xlsx) ================= */
+const QUESTIONS = [
+["Hva var produktnavnet til Ham & Mushroom originalt?",["Moby Dick","Canadian Bacon","Pig's Knuckle","New Orleans"],2],
+["Hvilket insekt ble funnet i datamaskinen Harvard Mark II i 1947 og ga opphav til uttrykket «bug»?",["Mark","Møll","Kakerlakk","Flue"],1],
+["Hvor åpnet den første Starbucks i Norge (2012)?",["Oslo City","Aker Brygge","Oslo S","Oslo lufthavn Gardermoen"],3],
+["Hva kalles phishing som skjer via SMS?",["Smishing","Vishing","Whaling","Spoofing"],0],
+["Hva står «TGI» i TGI Fridays for?",["Today's Great Italian","The Grill Inn","Thank God It's Friday","Time for Good Ingredients"],2],
+["Programmeringsspråket Python er oppkalt etter hva?",["Kvelerslangen python","Komigruppen Monty Python","Et monster i gresk mytologi","Et dataspill fra 1980-tallet"],1],
+["Hva står forkortelsen MFA for?",["Multifaktorautentisering","Maskinell filanalyse","Master File Access","Mobil fjerntilgang"],0],
+["Starbucks er oppkalt etter en karakter i hvilken roman?",["Skattkammerøya","Robinson Crusoe","Den gamle mannen og havet","Moby Dick"],3],
+["Hva heter pingvinen som er maskoten til Linux?",["Pingu","Tux","Linus","Gnu"],1],
+["Hvilket nordisk land drikker mest kaffe per innbygger?",["Norge","Sverige","Finland","Danmark"],2],
+["Hvilket norsk selskap ble rammet av et omfattende løsepengevirusangrep i mars 2019?",["Equinor","Norsk Hydro","Telenor","Yara"],1],
+["Hvilken TV-serie gjorde IT-rådet «Har du prøvd å skru den av og på igjen?» berømt?",["The Office","Silicon Valley","The IT Crowd","The Big Bang Theory"],2],
+["Hvilken restaurant ble den første i Norge med tre Michelin-stjerner?",["Maaemo","Kontrast","Re-naa","Galt"],0],
+["Hvilket løsepengevirus spredte seg over hele verden i mai 2017 og rammet blant annet det britiske helsevesenet NHS?",["NotPetya","WannaCry","Stuxnet","ILOVEYOU"],1],
+["Hvilken nordmann var den første som vant kokkekonkurransen Bocuse d'Or (1993)?",["Terje Ness","Geir Skeie","Ørjan Johannessen","Bent Stiansen"],3],
+["Hva betyr feilkoden «404» på en nettside?",["Serverfeil","Siden ble ikke funnet","Ingen tilgang","Tidsavbrudd"],1],
+["Hvilket år ble det innført røykeforbud på serveringssteder i Norge?",["1998","2001","2004","2008"],2],
+["Hva kalles svindelen der noen utgir seg for å være toppsjefen og ber om en hastebetaling?",["Direktørsvindel (CEO-svindel)","Løsepengevirus","DDoS-angrep","Keylogging"],0],
+["I hvilket land ble de første emojiene laget (1999)?",["USA","Sør-Korea","Japan","Finland"],2],
+["Hva heter den svenske tradisjonen med en kaffepause og noe søtt til?",["Hygge","Kos","Lagom","Fika"],3],
+["Hvilken norsk myndighet driver Nasjonalt cybersikkerhetssenter (NCSC)?",["NSM – Nasjonal sikkerhetsmyndighet","PST","Datatilsynet","Nkom"],0],
+["Hvilken dato feires «Kanelbullens dag» i Sverige?",["1. mai","4. oktober","13. desember","11. november"],1],
+["Hvem regnes som oppfinneren av World Wide Web?",["Vint Cerf","Bill Gates","Tim Berners-Lee","Steve Jobs"],2],
+["I hvilket land ble matleveringstjenesten Wolt grunnlagt?",["Sverige","Danmark","Norge","Finland"],3],
+["QR-koden ble oppfunnet i 1994. Hva skulle den opprinnelig brukes til å spore?",["Bildeler i bilproduksjon","Postpakker","Togbilletter","Matvarer i butikk"],0],
+["Hvilket passord har i mange år toppet listene over de mest brukte og lekkede passordene?",["123456","password","qwerty","admin"],0],
+["Hva betyr «Backstube»?",["Kaffebar","Konditori","Bakeri","Butikk"],2],
+["Hva slags matkonsept bygger Kjøkken & Kaffe på?",["Franske bakvarer","Norsk husmannskost","Italiensk pizza","Asiatisk street food"],1],
+["Hvilken av disse er en klassisk baguette hos La Baguette?",["Taco Salsa","Kylling Potet","Skinke Pepperoni","Kylling Tandoori"],3],
+["Hvor baker Fattigmann produktene sine?",["Sentral fabrikk","Lokalt på stedet","Hos leverandør","Hjemme hos kunden"],1],
+["Hva betyr «back of house»?",["Bakdøren til restauranten","Lageret hjemme hos kokken","Områdene bak restauranten, som kjøkken, lager o.l.","Restauranten bak"],2],
+["Hvor mange svart/hvit-utskrifter var det på HIG 60 i september?",["1 067","1 954","2 654","3 259"],2],
+["Hvor mange fargeutskrifter var det på HIG 60 i september?",["854","1 613","2 150","2 756"],1],
+["Hvor mange A3-sider ble skrevet ut på HIG 60 i september?",["101","176","223","298"],0]
+].map(([q,o,c])=>({q,o,c}));
+
+/* ================= SHARED ================= */
+const PREFIX = "dely-afterwork-quiz-";
+const LETTERS = ["A","B","C","D"];
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => Math.round(n).toLocaleString("nb-NO");
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const shapeHTML = i => `<span class="shape s${i}"></span>`;
+const peerOpts = () => Object.assign({debug:0}, window.QUIZ_PEER_OPTS || {});
+function haveLibs(){ return typeof window.Peer === "function"; }
+
+/* ================= ROUTING ================= */
+const params = new URLSearchParams(location.search);
+window.addEventListener("DOMContentLoaded", () => {
+  if (params.has("pin")) return startPlayer(params.get("pin"));
+  if (params.has("host")) return startHost();
+  $("#home").classList.remove("hidden");
+  $("#goHost").onclick = () => { history.replaceState(null,"","?host"); $("#home").classList.add("hidden"); startHost(); };
+  $("#goJoin").onclick = () => { const p = $("#homePin").value.trim(); if (/^\d{6}$/.test(p)) { history.replaceState(null,"","?pin="+p); $("#home").classList.add("hidden"); startPlayer(p); } };
+});
+
+/* ======================================================================
+   HOST
+   ====================================================================== */
+let S, peer, conns = new Map(), timerInt = null, hostRetries = 0;
+
+function newPin(){ return String(Math.floor(100000 + Math.random()*900000)); }
+function freshState(pin){ return {pin, phase:"lobby", qi:-1, dur:20, players:{}, answers:{}, endsAt:0, startedAt:0, publicUrl:""}; }
+function save(){ store.set("dq-host", S); }
+
+function startHost(){
+  $("#host").classList.remove("hidden");
+  S = store.get("dq-host") || freshState(newPin());
+  // Etter omlasting midt i et spørsmål: avslutt spørsmålet
+  if (S.phase === "question") { S.phase = "question"; S.endsAt = Date.now(); }
+  $("#fsBtn").onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT") return;
+    if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight") { e.preventDefault(); const b = $("#nextBtn"); if (b && !b.disabled) b.click(); }
+  });
+  render();
+  if (S.phase === "question") endQuestion();
+  connectHost();
+}
+
+function setNet(txt, err){ const p = $("#netPill"); p.textContent = txt; p.style.color = err ? "#ffb4a8" : ""; }
+
+function connectHost(){
+  if (!haveLibs()) { setNet("PeerJS lastet ikke – sjekk nett", true); return; }
+  peer = new Peer(PREFIX + S.pin, peerOpts());
+  peer.on("open", () => { hostRetries = 0; setNet("● Klar for deltakere"); });
+  peer.on("connection", handleConn);
+  peer.on("disconnected", () => { setNet("Mistet kobling – prøver igjen …", true); setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 1500); });
+  peer.on("error", err => {
+    if (err.type === "unavailable-id") {
+      // Forrige økt holder fortsatt ID-en (typisk rett etter omlasting) – prøv igjen litt
+      peer.destroy();
+      if (++hostRetries > 6) { S.pin = newPin(); save(); render(); hostRetries = 0; }
+      setNet("Venter på PIN …", true);
+      setTimeout(connectHost, 2500);
+    } else if (["network","server-error","socket-error","socket-closed"].includes(err.type)) {
+      setNet("Nettverksfeil – prøver igjen …", true);
+    }
+  });
+}
+
+function handleConn(conn){
+  conn.on("data", msg => onHostMsg(conn, msg));
+  conn.on("close", () => onClose(conn));
+  conn.on("error", () => onClose(conn));
+}
+
+function onClose(conn){
+  const tok = conn._tok; if (!tok || conns.get(tok) !== conn) return;
+  conns.delete(tok);
+  if (S.phase === "lobby") delete S.players[tok];
+  save(); renderLight();
+}
+
+function uniqueName(name, tok){
+  name = String(name||"").replace(/\s+/g," ").trim().slice(0,16) || "Spiller";
+  const taken = new Set(Object.entries(S.players).filter(([t]) => t !== tok).map(([,p]) => p.name.toLowerCase()));
+  let n = name, i = 2;
+  while (taken.has(n.toLowerCase())) n = name.slice(0,13) + " " + i++;
+  return n;
+}
+
+function onHostMsg(conn, msg){
+  if (!msg || typeof msg !== "object") return;
+  if (msg.t === "join") {
+    const tok = String(msg.token||"").slice(0,40); if (!tok) return;
+    const old = conns.get(tok); if (old && old !== conn) { try { old.close(); } catch(e){} }
+    conn._tok = tok; conns.set(tok, conn);
+    if (!S.players[tok]) S.players[tok] = {name: uniqueName(msg.name, tok), score:0, streak:0, last:null, prevRank:0, joined:Date.now()};
+    save(); sendState(tok); renderLight();
+  } else if (msg.t === "answer") {
+    const tok = conn._tok; if (!tok || !S.players[tok]) return;
+    if (S.phase !== "question" || msg.qi !== S.qi || S.answers[tok]) return;
+    const a = msg.a|0; if (a < 0 || a > 3) return;
+    S.answers[tok] = {a, ms: Math.max(0, Date.now() - S.startedAt)};
+    save(); sendState(tok); renderLight();
+    const online = [...conns.keys()].filter(t => S.players[t]);
+    if (online.length && online.every(t => S.answers[t])) setTimeout(() => { if (S.phase === "question") endQuestion(); }, 600);
+  }
+}
+
+function ranking(){
+  return Object.entries(S.players).map(([tok,p]) => ({tok, ...p}))
+    .sort((x,y) => y.score - x.score || x.joined - y.joined);
+}
+
+function stateFor(tok){
+  const p = S.players[tok], q = QUESTIONS[S.qi], rk = ranking();
+  const st = {t:"state", phase:S.phase, qi:S.qi, total:QUESTIONS.length, name:p.name, score:p.score, streak:p.streak,
+              rank: rk.findIndex(r => r.tok === tok) + 1, count: rk.length};
+  if (S.phase === "question") {
+    st.q = q.q; st.opts = q.o; st.remaining = Math.max(0, S.endsAt - Date.now()); st.dur = S.dur*1000;
+    st.answered = !!S.answers[tok];
+  }
+  if (S.phase === "reveal" || S.phase === "board") { st.last = p.last; st.correctText = q.o[q.c]; st.correct = q.c; }
+  if (S.phase === "final") st.top = rk.slice(0,3).map(r => ({name:r.name, score:r.score}));
+  return st;
+}
+function sendState(tok){ const c = conns.get(tok); if (c && c.open) { try { c.send(stateFor(tok)); } catch(e){} } }
+function broadcast(){ for (const tok of conns.keys()) if (S.players[tok]) sendState(tok); }
+
+/* ---- flow ---- */
+function startQuestion(i){
+  S.qi = i; S.answers = {}; S.phase = "question";
+  S.startedAt = Date.now(); S.endsAt = S.startedAt + S.dur*1000;
+  for (const p of Object.values(S.players)) p.last = null;
+  save(); render(); broadcast();
+  clearInterval(timerInt);
+  timerInt = setInterval(() => { tickTimer(); if (Date.now() >= S.endsAt) endQuestion(); }, 200);
+}
+
+function endQuestion(){
+  clearInterval(timerInt);
+  if (S.phase !== "question") return;
+  const q = QUESTIONS[S.qi], D = S.dur*1000;
+  ranking().forEach((r,i) => S.players[r.tok].prevRank = i+1);
+  for (const [tok,p] of Object.entries(S.players)) {
+    const ans = S.answers[tok];
+    if (ans && ans.a === q.c) {
+      const pts = Math.round(1000 * (1 - Math.min(ans.ms, D) / D / 2));
+      p.score += pts; p.streak++; p.last = {a:ans.a, ok:true, pts};
+    } else { p.streak = 0; p.last = {a: ans ? ans.a : null, ok:false, pts:0}; }
+  }
+  S.phase = "reveal"; save(); render(); broadcast();
+}
+function showBoard(){ S.phase = "board"; save(); render(); broadcast(); }
+function nextOrFinal(){ if (S.qi + 1 < QUESTIONS.length) startQuestion(S.qi + 1); else showFinal(); }
+function showFinal(){ clearInterval(timerInt); S.phase = "final"; save(); render(); broadcast(); }
+function resetGame(keepPlayers){
+  const pin = S.pin, dur = S.dur, url = S.publicUrl, players = S.players;
+  S = freshState(pin); S.dur = dur; S.publicUrl = url;
+  if (keepPlayers) for (const [t,p] of Object.entries(players)) if (conns.has(t)) S.players[t] = {...p, score:0, streak:0, last:null, prevRank:0};
+  save(); render(); broadcast();
+}
+
+/* ---- host rendering ---- */
+function joinUrl(){
+  if (location.protocol === "file:") return S.publicUrl ? S.publicUrl.replace(/[?#].*$/,"") + "?pin=" + S.pin : "";
+  return location.origin + location.pathname + "?pin=" + S.pin;
+}
+function drawQR(){
+  const el = $("#qr"); if (!el) return;
+  const url = joinUrl();
+  if (!url) { el.innerHTML = '<div class="url">Legg inn offentlig adresse under for å vise QR-kode</div>'; return; }
+  if (typeof window.qrcode !== "function") { el.innerHTML = '<div class="url">QR-bibliotek lastet ikke</div>'; return; }
+  const qr = qrcode(0, "M"); qr.addData(url); qr.make();
+  el.innerHTML = qr.createSvgTag({cellSize:8, margin:2, scalable:true});
+}
+
+function render(){
+  const st = $("#stage");
+  if (S.phase === "lobby") {
+    st.innerHTML = `
+      <div class="lobby">
+        <div class="joincard">
+          <h2>Skann for å bli med</h2>
+          <div id="qr"></div>
+          <div class="pinlabel">eller bruk PIN</div>
+          <div class="pin">${esc(S.pin)}</div>
+          <div class="url" id="urlTxt">${esc(joinUrl())}</div>
+          ${location.protocol === "file:" ? `<label class="urlfix">Filen er åpnet lokalt. Lim inn adressen der quiz.html ligger offentlig:
+            <input id="pubUrl" placeholder="https://…/quiz.html" value="${esc(S.publicUrl)}"></label>` : ""}
+        </div>
+        <div class="players">
+          <h1><span id="pcount">0</span> deltakere</h1>
+          <div class="chips" id="chips"></div>
+          <div style="flex:1"></div>
+          <div class="footer">
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <span class="status">Sekunder per spørsmål</span>
+              <div class="seg" id="durSeg">${[10,20,30].map(d => `<button data-d="${d}" class="${S.dur===d?"on":""}">${d}</button>`).join("")}</div>
+              <span class="status">${QUESTIONS.length} spørsmål · klikk et navn for å fjerne</span>
+            </div>
+            <button class="btn" id="nextBtn">Start quiz ▶</button>
+          </div>
+        </div>
+      </div>`;
+    drawQR();
+    $("#durSeg").onclick = e => { const d = +e.target.dataset.d; if (d) { S.dur = d; save(); render(); } };
+    $("#nextBtn").onclick = () => startQuestion(0);
+    const pu = $("#pubUrl"); if (pu) pu.oninput = () => { S.publicUrl = pu.value.trim(); save(); $("#urlTxt").textContent = joinUrl(); drawQR(); };
+    $("#chips").onclick = e => {
+      const tok = e.target.dataset && e.target.dataset.tok; if (!tok) return;
+      const c = conns.get(tok); if (c) { try { c.send({t:"kicked"}); } catch(_){} setTimeout(() => { try { c.close(); } catch(_){} }, 200); }
+      conns.delete(tok); delete S.players[tok]; save(); renderLight();
+    };
+    renderLight();
+  }
+  else if (S.phase === "question" || S.phase === "reveal") {
+    const q = QUESTIONS[S.qi], rev = S.phase === "reveal";
+    st.innerHTML = `
+      <div class="qhead">
+        <span class="pill">Spørsmål ${S.qi+1} av ${QUESTIONS.length}</span>
+        ${rev ? `<button class="btn" id="nextBtn">Vis stillingen ▶</button>` : `<button class="btn ghost" id="skipBtn">Avslutt tiden</button>`}
+      </div>
+      <div class="qtext">${esc(q.q)}</div>
+      <div class="mid">
+        ${rev ? `<div class="dist" id="dist"></div>` : `
+          <div class="timer"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="10"/>
+            <circle id="tring" cx="50" cy="50" r="44" fill="none" stroke="var(--mint)" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg>
+            <div class="num" id="tnum">${S.dur}</div></div>
+          <div style="flex:1"></div>
+          <div class="count"><b id="acount">0</b><span>svar</span></div>`}
+      </div>
+      <div class="opts">${q.o.map((o,i) => `
+        <div class="opt c${i} ${rev ? (i===q.c ? "win" : "dim") : ""}">${shapeHTML(i)}<span>${esc(o)}</span>${rev && i===q.c ? '<span class="tick">✓</span>' : ""}</div>`).join("")}
+      </div>`;
+    if (rev) {
+      $("#nextBtn").onclick = showBoard;
+      const counts = [0,0,0,0]; Object.values(S.answers).forEach(a => counts[a.a]++);
+      const max = Math.max(1, ...counts);
+      $("#dist").innerHTML = counts.map((n,i) => `<div class="col"><div class="n">${i===q.c?"✓ ":""}${n}</div><div class="bar c${i}" style="height:0"></div></div>`).join("");
+      requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll("#dist .bar").forEach((b,i) => b.style.height = (8 + counts[i]/max*120) + "px")));
+    } else {
+      $("#skipBtn").onclick = endQuestion;
+      tickTimer(); renderLight();
+    }
+  }
+  else if (S.phase === "board") renderBoard();
+  else if (S.phase === "final") renderFinal();
+}
+
+function tickTimer(){
+  const left = Math.max(0, S.endsAt - Date.now()), n = $("#tnum"), r = $("#tring");
+  if (!n) return;
+  n.textContent = Math.ceil(left/1000);
+  r.setAttribute("stroke-dashoffset", String(276.5 * (1 - left/(S.dur*1000))));
+  r.setAttribute("stroke", left < 5000 ? "var(--a)" : "var(--mint)");
+}
+
+function renderLight(){
+  if (S.phase === "lobby") {
+    const chips = $("#chips"); if (!chips) return;
+    const ps = Object.entries(S.players).sort((a,b) => a[1].joined - b[1].joined);
+    $("#pcount").textContent = ps.length;
+    const have = new Set([...chips.children].map(c => c.dataset.tok));
+    if (!ps.length) { chips.innerHTML = '<div class="empty">Venter på deltakere …</div>'; return; }
+    [...chips.children].forEach(c => { if (!c.dataset.tok || !S.players[c.dataset.tok]) c.remove(); });
+    for (const [tok,p] of ps) if (!have.has(tok)) { const d = document.createElement("button"); d.className = "chip"; d.dataset.tok = tok; d.textContent = p.name; chips.appendChild(d); }
+  } else if (S.phase === "question") {
+    const a = $("#acount"); if (a) a.textContent = Object.keys(S.answers).length + " / " + Object.keys(S.players).length;
+  }
+}
+
+function renderBoard(){
+  const rk = ranking(), top = rk.slice(0,5), last = S.qi + 1 >= QUESTIONS.length;
+  $("#stage").innerHTML = `
+    <div class="qhead"><span class="pill">Etter spørsmål ${S.qi+1} av ${QUESTIONS.length}</span>
+      <div style="display:flex;gap:10px">${last ? "" : `<button class="btn ghost" id="endBtn">Avslutt og vis vinnere</button>`}
+      <button class="btn" id="nextBtn">${last ? "Vis pallen 🏆" : "Neste spørsmål ▶"}</button></div></div>
+    <div class="board"><h1>Stillingen</h1><div class="rows" id="rows" style="height:${Math.max(1,top.length)*86}px"></div>
+    ${rk.length > 5 ? `<div class="status">+ ${rk.length-5} andre deltakere</div>` : ""}
+    ${!rk.length ? `<div class="empty">Ingen deltakere</div>` : ""}</div>`;
+  $("#nextBtn").onclick = nextOrFinal;
+  const eb = $("#endBtn"); if (eb) eb.onclick = showFinal;
+  const rows = $("#rows");
+  top.forEach((r,i) => {
+    const from = (r.prevRank && r.prevRank <= 6 ? r.prevRank : 6) - 1;
+    const mv = r.prevRank ? r.prevRank - (i+1) : 0;
+    const d = document.createElement("div");
+    d.className = "row r" + (i+1);
+    d.style.transform = `translateY(${from*86}px)`;
+    d.innerHTML = `<span class="rk">${i+1}</span><span class="nm"></span>
+      <span class="delta">${r.last && r.last.pts ? "+" + fmt(r.last.pts) : ""}</span>
+      <span class="mv ${mv>0?"up":mv<0?"down":""}">${mv>0?"▲"+mv:mv<0?"▼"+(-mv):""}</span>
+      <span class="sc" data-from="${r.score - (r.last ? r.last.pts : 0)}" data-to="${r.score}">${fmt(r.score - (r.last ? r.last.pts : 0))}</span>`;
+    d.querySelector(".nm").textContent = r.name;
+    rows.appendChild(d);
+  });
+  setTimeout(() => {
+    rows.querySelectorAll(".row").forEach((d,i) => d.style.transform = `translateY(${i*86}px)`);
+    countUp(rows.querySelectorAll(".sc"));
+  }, 350);
+}
+
+function countUp(els){
+  const t0 = performance.now(), D = 900;
+  (function f(t){ const k = Math.min(1,(t-t0)/D), e = 1 - Math.pow(1-k,3);
+    els.forEach(el => el.textContent = fmt(+el.dataset.from + (el.dataset.to - el.dataset.from) * e));
+    if (k < 1) requestAnimationFrame(f); })(t0);
+}
+
+function renderFinal(){
+  const rk = ranking(), p = [rk[1], rk[0], rk[2]], cls = ["p2","p1","p3"], num = [2,1,3];
+  $("#stage").innerHTML = `
+    <div class="qhead"><span class="pill">Quizen er ferdig · ${rk.length} deltakere</span>
+      <div style="display:flex;gap:10px"><button class="btn ghost" id="againBtn">Ny runde med samme deltakere</button></div></div>
+    <div class="podium"><h1>🏆 Vinnerne</h1>
+      <div class="steps">${p.map((r,i) => `
+        <div class="step ${cls[i]}" data-order="${num[i]}">
+          <div class="who">${r ? esc(r.name) : "–"}</div>
+          <div class="pts">${r ? fmt(r.score) + " poeng" : ""}</div>
+          <div class="blk">${num[i]}</div></div>`).join("")}</div>
+    </div>
+    ${rk.length > 3 ? `<div class="rest">${rk.slice(3).map((r,i) => `<span class="pill">${i+4}. ${esc(r.name)} · ${fmt(r.score)}</span>`).join("")}</div>` : ""}`;
+  $("#againBtn").onclick = () => resetGame(true);
+  const order = [3,2,1];
+  order.forEach((n,k) => setTimeout(() => {
+    const el = document.querySelector(`.step[data-order="${n}"]`); if (el) el.classList.add("show");
+    if (n === 1) confetti(4500);
+  }, 600 + k*1400));
+}
+
+/* ---- confetti ---- */
+function confetti(ms){
+  const cv = $("#confetti"), ctx = cv.getContext("2d"); cv.classList.remove("hidden");
+  const W = cv.width = innerWidth, H = cv.height = innerHeight;
+  const cols = ["#9fdcbf","#e9c46a","#d9483b","#2f6fde","#ffffff","#2e8b57"];
+  const ps = Array.from({length:180}, () => ({x:Math.random()*W, y:-20-Math.random()*H*.6, vx:(Math.random()-.5)*3, vy:2+Math.random()*4, r:Math.random()*6.28, vr:(Math.random()-.5)*.3, s:6+Math.random()*8, c:cols[Math.random()*cols.length|0]}));
+  const end = performance.now() + ms;
+  (function f(t){
+    ctx.clearRect(0,0,W,H);
+    ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.r += p.vr; if (p.y > H && t < end) { p.y = -20; p.x = Math.random()*W; }
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); ctx.restore(); });
+    if (t < end + 3000) requestAnimationFrame(f); else cv.classList.add("hidden");
+  })(performance.now());
+}
+
+/* ======================================================================
+   PLAYER
+   ====================================================================== */
+let P = {pin:"", token:"", name:"", conn:null, peer:null, state:null, retry:null, kicked:false, localAnswer:null};
+
+function startPlayer(pin){
+  $("#player").classList.remove("hidden");
+  P.pin = String(pin).replace(/\D/g,"").slice(0,6);
+  const saved = store.get("dq-player") || {};
+  P.token = saved.token || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
+  if (saved.pin === P.pin && saved.name) { P.name = saved.name; connectPlayer(); }
+  else showJoin(saved.name || "");
+}
+
+function pView(html){ $("#pmain").innerHTML = html; }
+function pBar(){
+  $("#pName").innerHTML = P.name ? `<b>${esc(P.name)}</b>` : "PIN " + esc(P.pin);
+  const s = P.state; $("#pScore").innerHTML = s && s.phase !== "lobby" ? `<b>${fmt(s.score)}</b> poeng` : "";
+}
+
+function showJoin(prefill, err){
+  pBar();
+  pView(`<div class="center">
+    <div class="brand" style="font-size:18px">Afterwork IT Quiz<small>Dely IT</small></div>
+    <div class="big">Hva skal du hete?</div>
+    <div class="field"><input id="nick" maxlength="16" autocomplete="off" placeholder="Kallenavn" value="${esc(prefill)}">
+    <button class="btn" id="joinBtn">Bli med</button></div>
+    ${err ? `<div class="sub" style="color:#ffb4a8">${esc(err)}</div>` : ""}</div>`);
+  const go = () => { const n = $("#nick").value.trim(); if (!n) return $("#nick").focus(); P.name = n.slice(0,16); store.set("dq-player",{pin:P.pin, token:P.token, name:P.name}); connectPlayer(); };
+  $("#joinBtn").onclick = go; $("#nick").onkeydown = e => { if (e.key === "Enter") go(); };
+  setTimeout(() => $("#nick") && $("#nick").focus(), 50);
+}
+
+function waiting(title, sub){ pView(`<div class="center"><div class="spinner"></div><div class="big">${title}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`); }
+
+function connectPlayer(){
+  clearTimeout(P.retry);
+  if (!haveLibs()) { pView(`<div class="center"><div class="big">Klarte ikke å laste quizen</div><div class="sub">Sjekk nettforbindelsen og last siden på nytt.</div></div>`); return; }
+  if (!P.state) waiting("Kobler til …");
+  if (!P.peer || P.peer.destroyed) {
+    P.peer = new Peer(peerOpts());
+    P.peer.on("open", openConn);
+    P.peer.on("disconnected", () => setTimeout(() => { if (P.peer && !P.peer.destroyed) P.peer.reconnect(); }, 1500));
+    P.peer.on("error", err => {
+      if (err.type === "peer-unavailable") {
+        if (!P.state) pView(`<div class="center"><div class="big">Fant ikke quizen</div><div class="sub">Sjekk at PIN ${esc(P.pin)} er riktig og at verten har quizen åpen. Prøver igjen …</div></div>`);
+        scheduleRetry(3000);
+      } else if (["network","server-error","socket-error","socket-closed"].includes(err.type)) scheduleRetry(3000);
+    });
+  } else if (P.peer.open) openConn();
+}
+function scheduleRetry(ms){ if (P.kicked) return; clearTimeout(P.retry); P.retry = setTimeout(connectPlayer, ms); }
+
+function openConn(){
+  if (P.conn) { try { P.conn.close(); } catch(e){} }
+  const c = P.peer.connect(PREFIX + P.pin, {reliable:true});
+  P.conn = c;
+  c.on("open", () => c.send({t:"join", token:P.token, name:P.name}));
+  c.on("data", onPlayerMsg);
+  c.on("close", () => { if (P.conn === c) { P.conn = null; if (!P.kicked) { pBar(); scheduleRetry(1500); } } });
+  c.on("error", () => {});
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && $("#player") && !$("#player").classList.contains("hidden") && P.name && !P.kicked && !(P.conn && P.conn.open)) connectPlayer();
+});
+
+function onPlayerMsg(m){
+  if (!m || typeof m !== "object") return;
+  if (m.t === "kicked") { P.kicked = true; store.del("dq-player"); pView(`<div class="center"><div class="big">Du ble fjernet fra quizen</div><div class="sub">Last siden på nytt for å bli med med et annet navn.</div></div>`); return; }
+  if (m.t !== "state") return;
+  const prev = P.state; P.state = m; P.name = m.name; store.set("dq-player",{pin:P.pin, token:P.token, name:P.name});
+  if (!prev || prev.qi !== m.qi) P.localAnswer = null;
+  pBar(); renderPlayer(prev);
+}
+
+let pTimer = null;
+function renderPlayer(prev){
+  const s = P.state; clearInterval(pTimer);
+  if (s.phase === "lobby") {
+    pView(`<div class="center"><div class="big">Du er med! 🎉</div><div class="sub">Se navnet ditt på storskjermen.<br>Quizen starter snart.</div></div>`);
+  } else if (s.phase === "question") {
+    if (s.answered || P.localAnswer !== null) {
+      const a = P.localAnswer ?? null;
+      pView(`<div class="center">${a !== null ? `<div class="pbtn c${a}" style="min-height:0;width:120px;align-items:center">${shapeHTML(a)}</div>` : ""}
+        <div class="big">Svar registrert</div><div class="sub">Venter på de andre …</div></div>`);
+      return;
+    }
+    const until = Date.now() + s.remaining;
+    pView(`<div class="pbar"><span>Spørsmål ${s.qi+1}/${s.total}</span><span id="pt"></span></div>
+      <div class="ptimer"><i id="pti"></i></div>
+      <div class="pq">${esc(s.q)}</div>
+      <div class="pgrid">${s.opts.map((o,i) => `<button class="pbtn c${i}" data-a="${i}">${shapeHTML(i)}<span>${esc(o)}</span></button>`).join("")}</div>`);
+    $("#pmain").querySelectorAll(".pbtn").forEach(b => b.onclick = () => {
+      const a = +b.dataset.a; if (P.localAnswer !== null) return;
+      P.localAnswer = a; if (navigator.vibrate) navigator.vibrate(30);
+      if (P.conn && P.conn.open) P.conn.send({t:"answer", qi:s.qi, a});
+      renderPlayer();
+    });
+    const tick = () => { const left = Math.max(0, until - Date.now()); const pt = $("#pt"), pi = $("#pti");
+      if (pt) pt.textContent = Math.ceil(left/1000) + " s"; if (pi) pi.style.transform = `scaleX(${left/s.dur})`;
+      if (!left) clearInterval(pTimer); };
+    tick(); pTimer = setInterval(tick, 200);
+  } else if (s.phase === "reveal" || s.phase === "board") {
+    const L = s.last || {ok:false, a:null, pts:0};
+    const cls = L.ok ? "ok" : L.a === null ? "none" : "bad";
+    pView(`<div class="flash ${cls}">
+      <div class="mark">${L.ok ? "✓" : L.a === null ? "⏱" : "✕"}</div>
+      <div class="big">${L.ok ? "Riktig!" : L.a === null ? "For sent!" : "Feil"}</div>
+      ${L.ok ? `<div class="pts">+ ${fmt(L.pts)}</div>` : `<div class="sub" style="color:#fff">Riktig svar: ${esc(LETTERS[s.correct])} – ${esc(s.correctText)}</div>`}
+      ${L.ok && s.streak > 1 ? `<div class="sub" style="color:#fff">🔥 ${s.streak} riktige på rad</div>` : ""}
+      <div class="sub" style="color:#fff">Du er nr. <b>${s.rank}</b> av ${s.count}</div>
+    </div>`);
+  } else if (s.phase === "final") {
+    const medal = ["","var(--gold)","var(--silver)","var(--bronze)"][s.rank] || "";
+    pView(`<div class="center">
+      ${medal ? `<div class="medal" style="background:${medal}">${s.rank}</div><div class="big">${s.rank}. plass!</div>`
+              : `<div class="big">Du kom på ${s.rank}. plass</div>`}
+      <div class="sub">${fmt(s.score)} poeng · ${s.count} deltakere</div>
+      <div class="sub" style="margin-top:10px">🥇 ${esc(s.top[0]?.name||"–")}<br>🥈 ${esc(s.top[1]?.name||"–")}<br>🥉 ${esc(s.top[2]?.name||"–")}</div>
+    </div>`);
+    if (medal && (!prev || prev.phase !== "final")) confetti(3000);
+  }
+}
+</script>
+</body>
+</html>
