@@ -181,7 +181,7 @@ input{font:inherit}
 
 <canvas id="confetti" class="hidden"></canvas>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
 "use strict";
@@ -235,8 +235,13 @@ const store = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 const shapeHTML = i => `<span class="shape s${i}"></span>`;
-const peerOpts = () => Object.assign({debug:0}, window.QUIZ_PEER_OPTS || {});
-function haveLibs(){ return typeof window.Peer === "function"; }
+/* Sanntid via offentlig MQTT-broker over WSS (fungerer på tvers av WiFi/4G, ingen WebRTC) */
+const BROKERS = ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt","wss://broker.hivemq.com:8884/mqtt"];
+const TOPIC = pin => PREFIX + "v2/" + pin + "/";
+const ONLINE_MS = 15000;
+const rid = () => Math.random().toString(16).slice(2,10);
+const mqOpts = id => ({clientId:id, clean:true, reconnectPeriod:2000, connectTimeout:8000, keepalive:20, protocolVersion:4});
+function haveLibs(){ return typeof window.mqtt === "object" && typeof window.mqtt.connect === "function"; }
 
 /* ================= ROUTING ================= */
 const params = new URLSearchParams(location.search);
@@ -251,15 +256,16 @@ window.addEventListener("DOMContentLoaded", () => {
 /* ======================================================================
    HOST
    ====================================================================== */
-let S, peer, conns = new Map(), timerInt = null, hostRetries = 0;
+let S, mq = null, seen = new Map(), kicked = new Set(), timerInt = null, hostStart = Date.now();
 
 function newPin(){ return String(Math.floor(100000 + Math.random()*900000)); }
-function freshState(pin){ return {pin, phase:"lobby", qi:-1, dur:20, players:{}, answers:{}, endsAt:0, startedAt:0, publicUrl:""}; }
+function freshState(pin){ return {pin, broker:0, phase:"lobby", qi:-1, dur:20, players:{}, answers:{}, endsAt:0, startedAt:0, publicUrl:""}; }
 function save(){ store.set("dq-host", S); }
 
 function startHost(){
   $("#host").classList.remove("hidden");
   S = store.get("dq-host") || freshState(newPin());
+  hostStart = Date.now();
   // Etter omlasting midt i et spørsmål: avslutt spørsmålet
   if (S.phase === "question") { S.phase = "question"; S.endsAt = Date.now(); }
   $("#fsBtn").onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
@@ -275,36 +281,36 @@ function startHost(){
 function setNet(txt, err){ const p = $("#netPill"); p.textContent = txt; p.style.color = err ? "#ffb4a8" : ""; }
 
 function connectHost(){
-  if (!haveLibs()) { setNet("PeerJS lastet ikke – sjekk nett", true); return; }
-  peer = new Peer(PREFIX + S.pin, peerOpts());
-  peer.on("open", () => { hostRetries = 0; setNet("● Klar for deltakere"); });
-  peer.on("connection", handleConn);
-  peer.on("disconnected", () => { setNet("Mistet kobling – prøver igjen …", true); setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 1500); });
-  peer.on("error", err => {
-    if (err.type === "unavailable-id") {
-      // Forrige økt holder fortsatt ID-en (typisk rett etter omlasting) – prøv igjen litt
-      peer.destroy();
-      if (++hostRetries > 6) { S.pin = newPin(); save(); render(); hostRetries = 0; }
-      setNet("Venter på PIN …", true);
-      setTimeout(connectHost, 2500);
-    } else if (["network","server-error","socket-error","socket-closed"].includes(err.type)) {
-      setNet("Nettverksfeil – prøver igjen …", true);
-    }
+  if (!haveLibs()) { setNet("Sanntidsbibliotek lastet ikke – sjekk nett", true); return; }
+  if (!(S.broker >= 0 && S.broker < BROKERS.length)) S.broker = 0;
+  const client = mqtt.connect(BROKERS[S.broker], mqOpts("dq-host-" + S.pin + "-" + rid()));
+  mq = client;
+  let ok = false;
+  client.on("connect", () => {
+    ok = true; setNet("● Klar for deltakere");
+    client.subscribe(TOPIC(S.pin) + "up", {qos:1});
+    broadcast();
   });
+  client.on("reconnect", () => setNet("Kobler til på nytt …", true));
+  client.on("offline", () => setNet("Frakoblet – prøver igjen …", true));
+  client.on("message", (topic, buf) => { let m; try { m = JSON.parse(buf.toString()); } catch(e){ return; } onHostMsg(m); });
+  // Fallback: hvis brokeren ikke svarer, bytt til neste (QR/lenke oppdateres automatisk)
+  setTimeout(() => {
+    if (ok || mq !== client) return;
+    client.end(true); S.broker = (S.broker + 1) % BROKERS.length; save(); render(); connectHost();
+  }, 10000);
 }
 
-function handleConn(conn){
-  conn.on("data", msg => onHostMsg(conn, msg));
-  conn.on("close", () => onClose(conn));
-  conn.on("error", () => onClose(conn));
-}
+function onlineToks(){ const now = Date.now(); return Object.keys(S.players).filter(t => now - (seen.get(t)||0) < ONLINE_MS); }
+function isOnline(t){ return Date.now() - (seen.get(t)||0) < ONLINE_MS; }
 
-function onClose(conn){
-  const tok = conn._tok; if (!tok || conns.get(tok) !== conn) return;
-  conns.delete(tok);
-  if (S.phase === "lobby") delete S.players[tok];
-  save(); renderLight();
-}
+// Fjern deltakere som har forsvunnet fra lobbyen
+setInterval(() => {
+  if (!S || S.phase !== "lobby" || Date.now() - hostStart < ONLINE_MS) return;
+  let changed = false;
+  for (const t of Object.keys(S.players)) if (!isOnline(t)) { delete S.players[t]; changed = true; }
+  if (changed) { save(); renderLight(); }
+}, 3000);
 
 function uniqueName(name, tok){
   name = String(name||"").replace(/\s+/g," ").trim().slice(0,16) || "Spiller";
@@ -314,21 +320,22 @@ function uniqueName(name, tok){
   return n;
 }
 
-function onHostMsg(conn, msg){
+function onHostMsg(msg){
   if (!msg || typeof msg !== "object") return;
-  if (msg.t === "join") {
-    const tok = String(msg.token||"").slice(0,40); if (!tok) return;
-    const old = conns.get(tok); if (old && old !== conn) { try { old.close(); } catch(e){} }
-    conn._tok = tok; conns.set(tok, conn);
-    if (!S.players[tok]) S.players[tok] = {name: uniqueName(msg.name, tok), score:0, streak:0, last:null, prevRank:0, joined:Date.now()};
-    save(); sendState(tok); renderLight();
+  const tok = String(msg.token||"").slice(0,40); if (!tok) return;
+  if (kicked.has(tok)) { sendTo(tok, {t:"kicked"}); return; }
+  seen.set(tok, Date.now());
+  if (msg.t === "join" || msg.t === "hb") {
+    const isNew = !S.players[tok];
+    if (isNew) S.players[tok] = {name: uniqueName(msg.name, tok), score:0, streak:0, last:null, prevRank:0, joined:Date.now()};
+    if (isNew || msg.t === "join") { save(); sendState(tok); renderLight(); }
   } else if (msg.t === "answer") {
-    const tok = conn._tok; if (!tok || !S.players[tok]) return;
+    if (!S.players[tok]) return;
     if (S.phase !== "question" || msg.qi !== S.qi || S.answers[tok]) return;
     const a = msg.a|0; if (a < 0 || a > 3) return;
     S.answers[tok] = {a, ms: Math.max(0, Date.now() - S.startedAt)};
     save(); sendState(tok); renderLight();
-    const online = [...conns.keys()].filter(t => S.players[t]);
+    const online = onlineToks();
     if (online.length && online.every(t => S.answers[t])) setTimeout(() => { if (S.phase === "question") endQuestion(); }, 600);
   }
 }
@@ -350,8 +357,9 @@ function stateFor(tok){
   if (S.phase === "final") st.top = rk.slice(0,3).map(r => ({name:r.name, score:r.score}));
   return st;
 }
-function sendState(tok){ const c = conns.get(tok); if (c && c.open) { try { c.send(stateFor(tok)); } catch(e){} } }
-function broadcast(){ for (const tok of conns.keys()) if (S.players[tok]) sendState(tok); }
+function sendTo(tok, obj){ if (mq && mq.connected) { try { mq.publish(TOPIC(S.pin) + "p/" + tok, JSON.stringify(obj), {qos:1}); } catch(e){} } }
+function sendState(tok){ if (S.players[tok]) sendTo(tok, stateFor(tok)); }
+function broadcast(){ for (const tok of Object.keys(S.players)) sendState(tok); }
 
 /* ---- flow ---- */
 function startQuestion(i){
@@ -381,16 +389,17 @@ function showBoard(){ S.phase = "board"; save(); render(); broadcast(); }
 function nextOrFinal(){ if (S.qi + 1 < QUESTIONS.length) startQuestion(S.qi + 1); else showFinal(); }
 function showFinal(){ clearInterval(timerInt); S.phase = "final"; save(); render(); broadcast(); }
 function resetGame(keepPlayers){
-  const pin = S.pin, dur = S.dur, url = S.publicUrl, players = S.players;
-  S = freshState(pin); S.dur = dur; S.publicUrl = url;
-  if (keepPlayers) for (const [t,p] of Object.entries(players)) if (conns.has(t)) S.players[t] = {...p, score:0, streak:0, last:null, prevRank:0};
+  const pin = S.pin, dur = S.dur, url = S.publicUrl, players = S.players, broker = S.broker;
+  S = freshState(pin); S.dur = dur; S.publicUrl = url; S.broker = broker;
+  if (keepPlayers) for (const [t,p] of Object.entries(players)) if (isOnline(t)) S.players[t] = {...p, score:0, streak:0, last:null, prevRank:0};
   save(); render(); broadcast();
 }
 
 /* ---- host rendering ---- */
 function joinUrl(){
-  if (location.protocol === "file:") return S.publicUrl ? S.publicUrl.replace(/[?#].*$/,"") + "?pin=" + S.pin : "";
-  return location.origin + location.pathname + "?pin=" + S.pin;
+  const b = S.broker ? "&b=" + S.broker : "";
+  if (location.protocol === "file:") return S.publicUrl ? S.publicUrl.replace(/[?#].*$/,"") + "?pin=" + S.pin + b : "";
+  return location.origin + location.pathname + "?pin=" + S.pin + b;
 }
 function drawQR(){
   const el = $("#qr"); if (!el) return;
@@ -435,8 +444,8 @@ function render(){
     const pu = $("#pubUrl"); if (pu) pu.oninput = () => { S.publicUrl = pu.value.trim(); save(); $("#urlTxt").textContent = joinUrl(); drawQR(); };
     $("#chips").onclick = e => {
       const tok = e.target.dataset && e.target.dataset.tok; if (!tok) return;
-      const c = conns.get(tok); if (c) { try { c.send({t:"kicked"}); } catch(_){} setTimeout(() => { try { c.close(); } catch(_){} }, 200); }
-      conns.delete(tok); delete S.players[tok]; save(); renderLight();
+      kicked.add(tok); sendTo(tok, {t:"kicked"});
+      delete S.players[tok]; save(); renderLight();
     };
     renderLight();
   }
@@ -573,11 +582,12 @@ function confetti(ms){
 /* ======================================================================
    PLAYER
    ====================================================================== */
-let P = {pin:"", token:"", name:"", conn:null, peer:null, state:null, retry:null, kicked:false, localAnswer:null};
+let P = {pin:"", broker:0, token:"", name:"", mq:null, hb:null, notFound:null, state:null, kicked:false, localAnswer:null};
 
 function startPlayer(pin){
   $("#player").classList.remove("hidden");
   P.pin = String(pin).replace(/\D/g,"").slice(0,6);
+  P.broker = Math.min(BROKERS.length - 1, Math.max(0, parseInt(params.get("b"),10) || 0));
   const saved = store.get("dq-player") || {};
   P.token = saved.token || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
   if (saved.pin === P.pin && saved.name) { P.name = saved.name; connectPlayer(); }
@@ -605,40 +615,33 @@ function showJoin(prefill, err){
 
 function waiting(title, sub){ pView(`<div class="center"><div class="spinner"></div><div class="big">${title}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`); }
 
+function sendUp(obj){ if (P.mq) { try { P.mq.publish(TOPIC(P.pin) + "up", JSON.stringify(Object.assign({token:P.token, name:P.name}, obj)), {qos:1}); } catch(e){} } }
+
 function connectPlayer(){
-  clearTimeout(P.retry);
   if (!haveLibs()) { pView(`<div class="center"><div class="big">Klarte ikke å laste quizen</div><div class="sub">Sjekk nettforbindelsen og last siden på nytt.</div></div>`); return; }
   if (!P.state) waiting("Kobler til …");
-  if (!P.peer || P.peer.destroyed) {
-    P.peer = new Peer(peerOpts());
-    P.peer.on("open", openConn);
-    P.peer.on("disconnected", () => setTimeout(() => { if (P.peer && !P.peer.destroyed) P.peer.reconnect(); }, 1500));
-    P.peer.on("error", err => {
-      if (err.type === "peer-unavailable") {
-        if (!P.state) pView(`<div class="center"><div class="big">Fant ikke quizen</div><div class="sub">Sjekk at PIN ${esc(P.pin)} er riktig og at verten har quizen åpen. Prøver igjen …</div></div>`);
-        scheduleRetry(3000);
-      } else if (["network","server-error","socket-error","socket-closed"].includes(err.type)) scheduleRetry(3000);
-    });
-  } else if (P.peer.open) openConn();
-}
-function scheduleRetry(ms){ if (P.kicked) return; clearTimeout(P.retry); P.retry = setTimeout(connectPlayer, ms); }
-
-function openConn(){
-  if (P.conn) { try { P.conn.close(); } catch(e){} }
-  const c = P.peer.connect(PREFIX + P.pin, {reliable:true});
-  P.conn = c;
-  c.on("open", () => c.send({t:"join", token:P.token, name:P.name}));
-  c.on("data", onPlayerMsg);
-  c.on("close", () => { if (P.conn === c) { P.conn = null; if (!P.kicked) { pBar(); scheduleRetry(1500); } } });
-  c.on("error", () => {});
+  if (P.mq) return;
+  const client = mqtt.connect(BROKERS[P.broker], mqOpts("dq-p-" + P.token.slice(0,8) + "-" + rid()));
+  P.mq = client;
+  client.on("connect", () => {
+    client.subscribe(TOPIC(P.pin) + "p/" + P.token, {qos:1}, () => sendUp({t:"join"}));
+  });
+  client.on("message", (topic, buf) => { let m; try { m = JSON.parse(buf.toString()); } catch(e){ return; } onPlayerMsg(m); });
+  clearInterval(P.hb);
+  P.hb = setInterval(() => { if (!P.kicked) sendUp({t: P.state ? "hb" : "join"}); }, 4000);
+  clearTimeout(P.notFound);
+  P.notFound = setTimeout(() => {
+    if (!P.state && !P.kicked) pView(`<div class="center"><div class="spinner"></div><div class="big">Fant ikke quizen</div><div class="sub">Sjekk at PIN ${esc(P.pin)} er riktig og at verten har quizen åpen. Prøver igjen …</div></div>`);
+  }, 9000);
 }
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && $("#player") && !$("#player").classList.contains("hidden") && P.name && !P.kicked && !(P.conn && P.conn.open)) connectPlayer();
+  if (document.visibilityState !== "visible" || !P.mq || P.kicked) return;
+  if (!P.mq.connected) { try { P.mq.reconnect(); } catch(e){} } else sendUp({t:"hb"});
 });
 
 function onPlayerMsg(m){
   if (!m || typeof m !== "object") return;
-  if (m.t === "kicked") { P.kicked = true; store.del("dq-player"); pView(`<div class="center"><div class="big">Du ble fjernet fra quizen</div><div class="sub">Last siden på nytt for å bli med med et annet navn.</div></div>`); return; }
+  if (m.t === "kicked") { P.kicked = true; clearInterval(P.hb); try { P.mq.end(true); } catch(e){} store.del("dq-player"); pView(`<div class="center"><div class="big">Du ble fjernet fra quizen</div><div class="sub">Last siden på nytt for å bli med med et annet navn.</div></div>`); return; }
   if (m.t !== "state") return;
   const prev = P.state; P.state = m; P.name = m.name; store.set("dq-player",{pin:P.pin, token:P.token, name:P.name});
   if (!prev || prev.qi !== m.qi) P.localAnswer = null;
@@ -665,7 +668,7 @@ function renderPlayer(prev){
     $("#pmain").querySelectorAll(".pbtn").forEach(b => b.onclick = () => {
       const a = +b.dataset.a; if (P.localAnswer !== null) return;
       P.localAnswer = a; if (navigator.vibrate) navigator.vibrate(30);
-      if (P.conn && P.conn.open) P.conn.send({t:"answer", qi:s.qi, a});
+      sendUp({t:"answer", qi:s.qi, a});
       renderPlayer();
     });
     const tick = () => { const left = Math.max(0, until - Date.now()); const pt = $("#pt"), pi = $("#pti");
